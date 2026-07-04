@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stryde</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header>
+    <div class="logo">Stryde</div>
+    <nav>
+      <a href="#">Footwear</a>
+      <a href="#">Bags</a>
+      <a href="#">Accessories</a>
+    </nav>
+  </header>
+
+  <div class="layout">
+
+    <main class="store-panel">
+      <div class="store-intro">
+        <h1>Find your perfect fit.</h1>
+        <p>Affordable footwear, bags and accessories. Ask Sam to help you find what you need.</p>
+      </div>
+      <div id="productsGrid" class="products-grid"></div>
+    </main>
+
+    <aside class="chat-panel">
+
+      <div class="chat-header">
+        <div class="avatar">👟</div>
+        <div class="chat-header-info">
+          <h3>Sam</h3>
+          <p>Store Assistant · Stryde</p>
+        </div>
+        <div class="online-dot"></div>
+      </div>
+
+      <div class="chat-messages" id="chatMessages"></div>
+
+      <div class="quick-replies" id="quickReplies"></div>
+
+      <div class="chat-input-area">
+        <textarea id="chatInput" placeholder="Ask Sam anything..."></textarea>
+        <button id="sendBtn">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
