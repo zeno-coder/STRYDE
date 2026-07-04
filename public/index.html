@@ -5,55 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Stryde</title>
   <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
 </head>
 <body>
 
+  <!-- HEADER -->
   <header>
     <div class="logo">Stryde</div>
-    <nav>
-      <a href="#">Footwear</a>
-      <a href="#">Bags</a>
-      <a href="#">Accessories</a>
-    </nav>
   </header>
 
-  <div class="layout">
+  <!-- MAIN -->
+  <main>
 
-    <main class="store-panel">
-      <div class="store-intro">
-        <h1>Find your perfect fit.</h1>
-        <p>Affordable footwear, bags and accessories. Ask Sam to help you find what you need.</p>
-      </div>
-      <div id="productsGrid" class="products-grid"></div>
-    </main>
+    <!-- SAM'S GREETING — shown when no products yet -->
+    <div class="sam-greeting" id="samGreeting">
+      <div class="sam-avatar">👟</div>
+      <h1>Hey, I'm Sam.</h1>
+      <p>Tell me what you're looking for — I'll find it for you.</p>
+    </div>
 
-    <aside class="chat-panel">
+    <!-- SAM'S REPLY — shown after customer sends a message -->
+    <div class="sam-reply" id="samReply"></div>
 
-      <div class="chat-header">
-        <div class="avatar">👟</div>
-        <div class="chat-header-info">
-          <h3>Sam</h3>
-          <p>Store Assistant · Stryde</p>
-        </div>
-        <div class="online-dot"></div>
-      </div>
+    <!-- PRODUCTS — appear as Sam recommends them -->
+    <div class="products-area" id="productsArea"></div>
 
-      <div class="chat-messages" id="chatMessages"></div>
+  </main>
 
-      <div class="quick-replies" id="quickReplies"></div>
-
-      <div class="chat-input-area">
-        <textarea id="chatInput" placeholder="Ask Sam anything..."></textarea>
-        <button id="sendBtn">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <line x1="22" y1="2" x2="11" y2="13"/>
-            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-          </svg>
-        </button>
-      </div>
-
-    </aside>
-
+  <!-- INPUT BAR — always at bottom -->
+  <div class="input-bar">
+    <div class="input-wrapper">
+      <textarea
+        id="chatInput"
+        placeholder="What are you looking for?"
+        rows="1"
+      ></textarea>
+      <button id="sendBtn">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+    <div class="quick-replies" id="quickReplies"></div>
   </div>
 
   <script src="script.js"></script>
