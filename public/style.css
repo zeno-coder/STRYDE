@@ -661,3 +661,26 @@ textarea#chatInput::placeholder {
   .sam-greeting h1 { font-size: 26px; }
   .products-area { grid-template-columns: repeat(2, 1fr); }
 }
+.product-img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.header-nav a {
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+
+.header-nav a:hover {
+  color: var(--accent);
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}

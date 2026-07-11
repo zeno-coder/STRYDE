@@ -27,6 +27,9 @@ pool.connect((err, client, release) => {
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const gemini = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+const scanRoutes = require('./scan-route')(pool);
+app.use('/api/scan', scanRoutes);
+
 async function buildSystemPrompt() {
   const result = await pool.query(
     'SELECT * FROM products WHERE active = true ORDER BY id'
@@ -140,6 +143,99 @@ app.post('/chat', async (req, res) => {
   }
 });
 
+const multer = require('multer');
+const fs = require('fs');
+
+// Create uploads folder if it doesn't exist
+if (!fs.existsSync('./public/uploads')) {
+  fs.mkdirSync('./public/uploads');
+}
+
+// Image upload setup
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, './public/uploads'),
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+});
+const upload = multer({ storage });
+
+// Simple auth middleware
+function adminAuth(req, res, next) {
+  const token = req.headers['admin-token'];
+  if (token === 'pass1234') return next();
+  res.status(401).json({ error: 'Unauthorized' });
+}
+
+// Get all products for admin
+app.get('/admin/products', adminAuth, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM products ORDER BY id');
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add new product
+app.post('/admin/products', adminAuth, upload.single('image'), async (req, res) => {
+  try {
+    const { name, category, subcategory, description, price, brand, color, size, stock } = req.body;
+    const image_url = req.file ? `/uploads/${req.file.filename}` : null;
+
+    const result = await pool.query(
+      `INSERT INTO products (name, category, subcategory, description, price, brand, color, size, stock, image_url)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      [name, category, subcategory, description, price, brand, color, size, parseInt(stock), image_url]
+    );
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Edit product
+app.put('/admin/products/:id', adminAuth, upload.single('image'), async (req, res) => {
+  try {
+    const { name, category, subcategory, description, price, brand, color, size, stock } = req.body;
+    const { id } = req.params;
+
+    let image_url = req.body.existing_image;
+    if (req.file) image_url = `/uploads/${req.file.filename}`;
+
+    const result = await pool.query(
+      `UPDATE products SET name=$1, category=$2, subcategory=$3, description=$4,
+       price=$5, brand=$6, color=$7, size=$8, stock=$9, image_url=$10,
+       updated_at=CURRENT_TIMESTAMP WHERE id=$11 RETURNING *`,
+      [name, category, subcategory, description, price, brand, color, size, parseInt(stock), image_url, parseInt(id)]
+    );
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete product
+app.delete('/admin/products/:id', adminAuth, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM products WHERE id = $1', [req.params.id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update stock only
+app.patch('/admin/products/:id/stock', adminAuth, async (req, res) => {
+  try {
+    const { stock } = req.body;
+    const result = await pool.query(
+      'UPDATE products SET stock=$1, updated_at=CURRENT_TIMESTAMP WHERE id=$2 RETURNING *',
+      [parseInt(stock), req.params.id]
+    );
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 app.listen(3000, () => {
   console.log('Stryde server running on http://localhost:3000');
 });

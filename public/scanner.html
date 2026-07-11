@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Stryde Scanner</title>
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<style>
+  :root{
+    --bg:#0b0c0e; --panel:#151719; --panel2:#1d2023; --line:#2a2d31;
+    --text:#f2f2f0; --muted:#8b9096; --accent:#ff5a1f; --accent2:#ffb199;
+    --ok:#3ddc84; --err:#ff5a5a;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:40px}
+  header{padding:20px 18px 12px;position:sticky;top:0;background:var(--bg);z-index:5;border-bottom:1px solid var(--line)}
+  header h1{font-size:19px;margin:0 0 2px;letter-spacing:.3px}
+  header p{margin:0;color:var(--muted);font-size:13px}
+
+  #gate{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:24px}
+  #gate input{width:220px;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:16px;text-align:center}
+  #gate button{padding:12px 24px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-weight:600;font-size:15px}
+  #gateErr{color:var(--err);font-size:13px;min-height:16px}
+
+  main{max-width:520px;margin:0 auto;padding:18px}
+
+  .section{margin-bottom:22px}
+  .section h2{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:0 0 10px}
+
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .field input, .field select{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:15px}
+
+  .mode-toggle{display:flex;gap:8px;margin-bottom:14px}
+  .mode-toggle button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:14px;font-weight:600}
+  .mode-toggle button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  .shots{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .shot{
+    aspect-ratio:1;border-radius:14px;border:1.5px dashed var(--line);background:var(--panel);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    position:relative;overflow:hidden;cursor:pointer;
+  }
+  .shot.filled{border-style:solid;border-color:var(--ok)}
+  .shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .shot .label{font-size:12px;color:var(--muted);z-index:1;font-weight:600}
+  .shot .req{color:var(--accent2)}
+  .shot .plus{font-size:26px;color:var(--muted);z-index:1}
+  .shot.filled .label, .shot.filled .plus{display:none}
+  .shot .remove{
+    position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;
+    background:rgba(0,0,0,.6);color:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:14px;z-index:2;
+  }
+  .shot input{display:none}
+
+  #generateBtn{
+    width:100%;padding:15px;border-radius:12px;border:none;background:var(--accent);
+    color:#fff;font-size:16px;font-weight:700;margin-top:18px;letter-spacing:.2px;
+  }
+  #generateBtn:disabled{background:var(--panel2);color:var(--muted)}
+
+  #progressWrap{display:none;margin-top:18px;padding:16px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
+  #progressWrap .status-line{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:8px}
+  #barTrack{height:6px;border-radius:4px;background:var(--panel2);overflow:hidden}
+  #barFill{height:100%;width:6%;background:var(--accent);border-radius:4px;transition:width .4s}
+
+  #result{display:none;margin-top:18px}
+  #result model-viewer{width:100%;height:320px;border-radius:14px;background:var(--panel2)}
+  #result .ok-banner{display:flex;align-items:center;gap:8px;color:var(--ok);font-size:14px;font-weight:600;margin:12px 0}
+  #result .actions{display:flex;gap:10px}
+  #result .actions button{flex:1;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:14px;font-weight:600}
+
+  #errorBox{display:none;margin-top:14px;padding:12px 14px;border-radius:10px;background:rgba(255,90,90,.12);border:1px solid rgba(255,90,90,.4);color:var(--err);font-size:14px}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <h1 style="margin:0">Stryde Scanner</h1>
+  <input type="password" id="gatePass" placeholder="Access code" inputmode="numeric">
+  <button id="gateBtn">Enter</button>
+  <div id="gateErr"></div>
+</div>
+
+<header>
+  <h1>Scan a product</h1>
+  <p>Snap a few photos, get a live 3D model in minutes</p>
+</header>
+
+<main>
+
+  <div class="section">
+    <h2>Product</h2>
+    <div class="mode-toggle">
+      <button id="modeNew" class="active">New product</button>
+      <button id="modeExisting">Existing product</button>
+    </div>
+
+    <div id="newFields">
+      <div class="field">
+        <label>Name</label>
+        <input type="text" id="productName" placeholder="e.g. Aero Runner 2">
+      </div>
+      <div class="field">
+        <label>Price (₹)</label>
+        <input type="number" id="productPrice" placeholder="4999">
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <input type="text" id="productCategory" placeholder="sneakers, running, formal...">
+      </div>
+    </div>
+
+    <div id="existingFields" style="display:none">
+      <div class="field">
+        <label>Choose product</label>
+        <select id="productSelect"><option>Loading…</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Photos <span style="color:var(--muted);text-transform:none;letter-spacing:0">(front required, others improve accuracy)</span></h2>
+    <div class="shots">
+      <label class="shot" data-slot="0">
+        <span class="plus">+</span><span class="label">Front <span class="req">*</span></span>
+        <input type="file" accept="image/*" capture="environment">
+        <span class="remove" style="display:none">✕</span>
+      </label>
+      <label class="shot" data-slot="1">
+        <span class="plus">+</span><span class="label">Left</span>
+        <input type="file" accept="image/*" capture="environment">
+        <span class="remove" style="display:none">✕</span>
+      </label>
+      <label class="shot" data-slot="2">
+        <span class="plus">+</span><span class="label">Back</span>
+        <input type="file" accept="image/*" capture="environment">
+        <span class="remove" style="display:none">✕</span>
+      </label>
+      <label class="shot" data-slot="3">
+        <span class="plus">+</span><span class="label">Right</span>
+        <input type="file" accept="image/*" capture="environment">
+        <span class="remove" style="display:none">✕</span>
+      </label>
+    </div>
+  </div>
+
+  <button id="generateBtn" disabled>Add front photo to continue</button>
+
+  <div id="progressWrap">
+    <div class="status-line"><span id="statusText">Uploading photos…</span><span id="progressPct">5%</span></div>
+    <div id="barTrack"><div id="barFill"></div></div>
+  </div>
+
+  <div id="errorBox"></div>
+
+  <div id="result">
+    <div class="ok-banner">✓ 3D model ready</div>
+    <model-viewer id="viewer" camera-controls auto-rotate shadow-intensity="1"></model-viewer>
+    <div class="actions" style="margin-top:12px">
+      <button id="scanAnotherBtn">Scan another</button>
+      <a id="viewProductBtn" href="#" style="text-decoration:none"><button style="width:100%">View product page</button></a>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// This is the same value server.js checks against the `admin-token` header
+// on every /api/scan/* request - it's not just a cosmetic gate.
+let adminToken = sessionStorage.getItem('stryde_admin_token') || '';
+const gate = document.getElementById('gate');
+if (adminToken) gate.style.display = 'none';
+
+document.getElementById('gateBtn').onclick = async () => {
+  const val = document.getElementById('gatePass').value;
+  // Verify against the real backend instead of trusting the client-side check.
+  const check = await fetch('/api/scan/products', { headers: { 'admin-token': val } });
+  if (check.ok) {
+    adminToken = val;
+    sessionStorage.setItem('stryde_admin_token', val);
+    gate.style.display = 'none';
+  } else {
+    document.getElementById('gateErr').textContent = 'Incorrect code';
+  }
+};
+
+// ---- product mode toggle ----
+const modeNewBtn = document.getElementById('modeNew');
+const modeExistingBtn = document.getElementById('modeExisting');
+const newFields = document.getElementById('newFields');
+const existingFields = document.getElementById('existingFields');
+const productSelect = document.getElementById('productSelect');
+let mode = 'new';
+
+modeNewBtn.onclick = () => setMode('new');
+modeExistingBtn.onclick = () => setMode('existing');
+
+function setMode(m) {
+  mode = m;
+  modeNewBtn.classList.toggle('active', m === 'new');
+  modeExistingBtn.classList.toggle('active', m === 'existing');
+  newFields.style.display = m === 'new' ? 'block' : 'none';
+  existingFields.style.display = m === 'existing' ? 'block' : 'none';
+  if (m === 'existing' && productSelect.dataset.loaded !== '1') loadProducts();
+}
+
+async function loadProducts() {
+  try {
+    const res = await fetch('/api/scan/products', { headers: { 'admin-token': adminToken } });
+    const products = await res.json();
+    productSelect.innerHTML = products
+      .map(p => `<option value="${p.id}">${p.name}${p.model_url ? ' (has model)' : ''}</option>`)
+      .join('');
+    productSelect.dataset.loaded = '1';
+  } catch (e) {
+    productSelect.innerHTML = '<option>Could not load products</option>';
+  }
+}
+
+// ---- photo slots ----
+const slotFiles = [null, null, null, null];
+const shots = document.querySelectorAll('.shot');
+const generateBtn = document.getElementById('generateBtn');
+
+shots.forEach(shot => {
+  const idx = parseInt(shot.dataset.slot, 10);
+  const input = shot.querySelector('input');
+  const removeBtn = shot.querySelector('.remove');
+
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    if (!file) return;
+    slotFiles[idx] = file;
+    const url = URL.createObjectURL(file);
+    let img = shot.querySelector('img');
+    if (!img) {
+      img = document.createElement('img');
+      shot.prepend(img);
+    }
+    img.src = url;
+    shot.classList.add('filled');
+    removeBtn.style.display = 'flex';
+    updateGenerateState();
+  });
+
+  removeBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    slotFiles[idx] = null;
+    input.value = '';
+    const img = shot.querySelector('img');
+    if (img) img.remove();
+    shot.classList.remove('filled');
+    removeBtn.style.display = 'none';
+    updateGenerateState();
+  });
+});
+
+function updateGenerateState() {
+  const hasFront = !!slotFiles[0];
+  generateBtn.disabled = !hasFront;
+  generateBtn.textContent = hasFront ? 'Generate 3D model' : 'Add front photo to continue';
+}
+
+// ---- generate flow ----
+const progressWrap = document.getElementById('progressWrap');
+const statusText = document.getElementById('statusText');
+const progressPct = document.getElementById('progressPct');
+const barFill = document.getElementById('barFill');
+const errorBox = document.getElementById('errorBox');
+const result = document.getElementById('result');
+
+generateBtn.addEventListener('click', async () => {
+  errorBox.style.display = 'none';
+  result.style.display = 'none';
+  generateBtn.disabled = true;
+  progressWrap.style.display = 'block';
+  setProgress(20, 'Uploading photo…');
+
+  const formData = new FormData();
+  slotFiles.forEach(f => { if (f) formData.append('images', f); });
+
+  if (mode === 'new') {
+    formData.append('productName', document.getElementById('productName').value);
+    formData.append('price', document.getElementById('productPrice').value);
+    formData.append('category', document.getElementById('productCategory').value);
+  } else {
+    formData.append('productId', productSelect.value);
+  }
+
+  // The free route waits for generation to finish before responding, so
+  // this can take 30s-2min depending on how busy the free HF Space is.
+  // Nudge the progress bar along so it doesn't look frozen.
+  let fakePct = 20;
+  const nudge = setInterval(() => {
+    fakePct = Math.min(fakePct + 4, 90);
+    setProgress(fakePct, 'Generating on the free 3D service… this can take a minute or two');
+  }, 2500);
+
+  try {
+    const startRes = await fetch('/api/scan/start', {
+      method: 'POST',
+      headers: { 'admin-token': adminToken },
+      body: formData
+    });
+    const startJson = await startRes.json();
+    clearInterval(nudge);
+    if (!startRes.ok) throw new Error(startJson.error || 'Could not generate the model');
+
+    setProgress(100, 'Done');
+    showResult(startJson.modelUrl, startJson.productId);
+  } catch (err) {
+    clearInterval(nudge);
+    showError(err.message);
+  }
+});
+
+function setProgress(pct, label) {
+  barFill.style.width = pct + '%';
+  progressPct.textContent = pct + '%';
+  statusText.textContent = label;
+}
+
+function showError(msg) {
+  progressWrap.style.display = 'none';
+  errorBox.style.display = 'block';
+  errorBox.textContent = msg;
+  generateBtn.disabled = false;
+}
+
+function showResult(modelUrl, productId) {
+  progressWrap.style.display = 'none';
+  result.style.display = 'block';
+  document.getElementById('viewer').src = modelUrl;
+  document.getElementById('viewProductBtn').href = `/product.html?id=${productId}`;
+  generateBtn.disabled = false;
+}
+
+document.getElementById('scanAnotherBtn').addEventListener('click', () => {
+  slotFiles.fill(null);
+  shots.forEach(s => {
+    s.classList.remove('filled');
+    const img = s.querySelector('img');
+    if (img) img.remove();
+    s.querySelector('input').value = '';
+    s.querySelector('.remove').style.display = 'none';
+  });
+  document.getElementById('productName').value = '';
+  document.getElementById('productPrice').value = '';
+  document.getElementById('productCategory').value = '';
+  result.style.display = 'none';
+  updateGenerateState();
+});
+</script>
+</body>
+</html>

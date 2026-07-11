@@ -65,13 +65,16 @@ function renderProducts(ids) {
 
   const matched = allProducts.filter(p => ids.includes(p.id));
 
-  area.innerHTML = matched.map((p, i) => `
-    <div class="product-card" style="animation-delay: ${i * 0.05}s">
-      <div class="product-emoji">${p.icon}</div>
+ area.innerHTML = matched.map((p, i) => `
+   <div class="product-card" style="animation-delay: ${i * 0.05}s" onclick="window.location.href='product.html?id=${p.id}'">
+      ${p.image_url
+        ? `<img src="${p.image_url}" alt="${p.name}" class="product-img" />`
+        : `<div class="product-emoji">${p.icon}</div>`
+      }
       <div class="product-info">
         <div class="product-tag">${p.subcategory || p.category}</div>
         <div class="product-name">${p.name}</div>
-        <div class="product-price">${p.price}</div>
+        <div class="product-price">${p.price.replace(/\?/g, '₹')}</div>
         <div class="product-stock">${p.stock > 0 ? `${p.stock} in stock` : 'Out of stock'}</div>
       </div>
     </div>

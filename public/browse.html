@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browse — Stryde</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    body { overflow: auto; }
+    main { padding: 80px 24px 60px; }
+
+    .browse-header {
+      margin-bottom: 32px;
+    }
+
+    .browse-header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .browse-header p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .category-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+
+    .tab-btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      padding: 8px 18px;
+      border: 1.5px solid var(--border);
+      background: var(--white);
+      color: var(--ink);
+      border-radius: 24px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-weight: 500;
+    }
+
+    .tab-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--white);
+    }
+
+    .category-section {
+      margin-bottom: 48px;
+    }
+
+    .category-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .browse-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .browse-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      animation: fadeUp 0.3s ease forwards;
+    }
+
+    .browse-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+
+    .browse-card img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+    }
+
+    .browse-card .product-emoji {
+      font-size: 44px;
+      background: var(--surface);
+      width: 100%;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .browse-card-info {
+      padding: 12px;
+    }
+
+    .browse-card-tag {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .browse-card-name {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--ink);
+    }
+
+    .browse-card-price {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    .browse-card-stock {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .ask-sam-bar {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+    }
+
+    .ask-sam-btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 14px 24px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 32px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(45,106,79,0.35);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ask-sam-btn:hover {
+      background: var(--ink);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.15);
+    }
+
+    @media (max-width: 480px) {
+      .browse-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">Stryde</div>
+    <nav class="header-nav">
+      <a href="index.html">Ask Sam</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="browse-header">
+      <h1>Browse everything</h1>
+      <p>Explore our full collection of footwear, bags and accessories.</p>
+    </div>
+
+    <div class="category-tabs" id="categoryTabs"></div>
+
+    <div id="productsContainer"></div>
+  </main>
+
+  <!-- Floating Ask Sam button -->
+  <div class="ask-sam-bar">
+    <button class="ask-sam-btn" onclick="window.location.href='index.html'">
+      👟 Ask Sam
+    </button>
+  </div>
+
+  <script>
+    let allProducts = [];
+    let activeCategory = 'All';
+
+    async function loadProducts() {
+      const response = await fetch('/products');
+      allProducts = await response.json();
+      renderTabs();
+      renderProducts();
+    }
+
+    function getCategories() {
+      const cats = ['All', ...new Set(allProducts.map(p => p.category))];
+      return cats;
+    }
+
+    function renderTabs() {
+      const tabs = document.getElementById('categoryTabs');
+      tabs.innerHTML = getCategories().map(cat => `
+        <button
+          class="tab-btn ${cat === activeCategory ? 'active' : ''}"
+          onclick="filterCategory('${cat}')"
+        >${cat}</button>
+      `).join('');
+    }
+
+    function filterCategory(cat) {
+      activeCategory = cat;
+      renderTabs();
+      renderProducts();
+    }
+
+    function renderProducts() {
+      const container = document.getElementById('productsContainer');
+      const filtered = activeCategory === 'All'
+        ? allProducts
+        : allProducts.filter(p => p.category === activeCategory);
+
+      // Group by category
+      const grouped = {};
+      filtered.forEach(p => {
+        if (!grouped[p.category]) grouped[p.category] = [];
+        grouped[p.category].push(p);
+      });
+
+      container.innerHTML = Object.entries(grouped).map(([category, products]) => `
+        <div class="category-section">
+          <div class="category-title">${category}</div>
+          <div class="browse-grid">
+            ${products.map((p, i) => `
+             <div class="browse-card" style="animation-delay: ${i * 0.05}s" onclick="window.location.href='product.html?id=${p.id}'">
+                ${p.image_url
+                  ? `<img src="${p.image_url}" alt="${p.name}" />`
+                  : `<div class="product-emoji">${p.icon}</div>`
+                }
+                <div class="browse-card-info">
+                  <div class="browse-card-tag">${p.subcategory || p.category}</div>
+                  <div class="browse-card-name">${p.name}</div>
+                  <div class="browse-card-price">${p.price.replace(/\?/g, '₹')}</div>
+                  <div class="browse-card-stock">${p.stock > 0 ? `${p.stock} in stock` : 'Out of stock'}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    loadProducts();
+  </script>
+
+</body>
+</html>
