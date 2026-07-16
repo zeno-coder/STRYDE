@@ -281,7 +281,8 @@ generateBtn.addEventListener('click', async () => {
   setProgress(20, 'Uploading photo…');
 
   const formData = new FormData();
-  slotFiles.forEach(f => { if (f) formData.append('images', f); });
+ const slotNames = ['front', 'left', 'back', 'right'];
+  slotFiles.forEach((f, i) => { if (f) formData.append(slotNames[i], f); });
 
   if (mode === 'new') {
     formData.append('productName', document.getElementById('productName').value);
@@ -297,7 +298,7 @@ generateBtn.addEventListener('click', async () => {
   let fakePct = 20;
   const nudge = setInterval(() => {
     fakePct = Math.min(fakePct + 4, 90);
-    setProgress(fakePct, 'Generating on the free 3D service… this can take a minute or two');
+ setProgress(fakePct, 'Generating on your GPU… multi-view takes 2-5 minutes');
   }, 2500);
 
   try {
